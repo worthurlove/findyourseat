@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上传测试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .upload-area { 
+            border: 2px dashed #ccc; 
+            padding: 20px; 
+            text-align: center; 
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        .log { 
+            background: #f5f5f5; 
+            padding: 10px; 
+            margin: 10px 0; 
+            height: 300px; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            font-size: 12px;
+        }
+        .status { margin: 10px 0; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>文件上传测试</h1>
+    <p>这是一个简化的测试页面，用于调试文件上传问题。</p>
+    
+    <div class="status" id="status">就绪</div>
+    
+    <div class="upload-area" id="uploadArea">
+        点击或拖拽Excel文件到这里
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+    </div>
+    
+    <div class="log" id="log"></div>
+    
+    <script src="libs/xlsx.full.min.js"></script>
+    <script>
+        let isProcessing = false;
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        
+        function addLog(message) {
+            const time = new Date().toLocaleTimeString();
+            log.innerHTML += `[${time}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        function setStatus(text, color = 'black') {
+            status.textContent = text;
+            status.style.color = color;
+        }
+        
+        function resetFileInput() {
+            const fileInput = document.getElementById('fileInput');
+            const oldHandler = fileInput.onchange;
+            fileInput.onchange = null;
+            fileInput.value = '';
+            setTimeout(() => {
+                fileInput.onchange = oldHandler;
+            }, 100);
+            addLog('文件输入已重置');
+        }
+        
+        async function handleFile(file) {
+            if (isProcessing) {
+                addLog('⚠️ 文件正在处理中，忽略新请求');
+                return;
+            }
+            
+            isProcessing = true;
+            setStatus('处理中...', 'orange');
+            addLog(`📁 开始处理文件: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+            
+            try {
+                // 检查文件类型
+                if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                    throw new Error('不支持的文件格式');
+                }
+                
+                if (file.name.toLowerCase().endsWith('.xlsm')) {
+                    throw new Error('不支持XLSM文件');
+                }
+                
+                // 模拟处理
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 尝试读取文件
+                const data = new Uint8Array(await file.arrayBuffer());
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                addLog(`✅ 文件解析成功，工作表数量: ${workbook.SheetNames.length}`);
+                
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                addLog(`📊 数据行数: ${jsonData.length}`);
+                setStatus('处理完成', 'green');
+                
+                // 成功后重置
+                setTimeout(() => {
+                    resetFileInput();
+                    setStatus('就绪', 'black');
+                }, 2000);
+                
+            } catch (error) {
+                addLog(`❌ 处理失败: ${error.message}`);
+                setStatus('处理失败', 'red');
+                resetFileInput();
+                
+                setTimeout(() => {
+                    setStatus('就绪', 'black');
+                }, 3000);
+            } finally {
+                isProcessing = false;
+            }
+        }
+        
+        // 初始化
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && !isProcessing) {
+                addLog(`📤 文件选择事件触发: ${file.name}`);
+                handleFile(file);
+            }
+        });
+        
+        uploadArea.addEventListener('click', () => {
+            if (!isProcessing) {
+                addLog('🖱️ 点击上传区域');
+                fileInput.click();
+            }
+        });
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#f0f0f0';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.backgroundColor = '';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && !isProcessing) {
+                addLog(`📥 拖拽文件: ${files[0].name}`);
+                handleFile(files[0]);
+            }
+        });
+        
+        addLog('🚀 测试页面已加载');
+    </script>
+</body>
+</html>
