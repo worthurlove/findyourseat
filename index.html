@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>座位安排系统 - FindYourSeat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- 头部导航 -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#">
+                    <i class="bi bi-people-fill me-2"></i>
+                    FindYourSeat
+                </a>
+                <span class="navbar-text">
+                    智能座位安排系统
+                </span>
+            </div>
+        </nav>
+
+        <!-- 主要内容区域 -->
+        <div class="container">
+            <!-- 步骤指示器 -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="steps-indicator">
+                        <div class="step active" data-step="1">
+                            <div class="step-number">1</div>
+                            <div class="step-title">上传数据</div>
+                        </div>
+                        <div class="step" data-step="2">
+                            <div class="step-number">2</div>
+                            <div class="step-title">配置会议室</div>
+                        </div>
+                        <div class="step" data-step="3">
+                            <div class="step-number">3</div>
+                            <div class="step-title">智能分配</div>
+                        </div>
+                        <div class="step" data-step="4">
+                            <div class="step-number">4</div>
+                            <div class="step-title">预览调整</div>
+                        </div>
+                        <div class="step" data-step="5">
+                            <div class="step-number">5</div>
+                            <div class="step-title">导出结果</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤1: 数据上传 -->
+            <div id="step1" class="step-content active">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-upload me-2"></i>上传员工数据</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="upload-area" id="uploadArea">
+                                    <div class="upload-icon">
+                                        <i class="bi bi-cloud-upload"></i>
+                                    </div>
+                                    <h5>拖拽Excel文件到此处，或点击上传</h5>
+                                    <p class="text-muted">支持 .xlsx, .xls 格式</p>
+                                    <input type="file" id="fileInput" class="d-none" accept=".xlsx,.xls">
+                                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                        <i class="bi bi-folder2-open me-2"></i>选择文件
+                                    </button>
+                                </div>
+                                
+                                <div id="fileInfo" class="mt-3 d-none">
+                                    <div class="alert alert-success">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        文件上传成功: <span id="fileName"></span>
+                                    </div>
+                                </div>
+
+                                <div id="dataPreview" class="mt-3 d-none">
+                                    <h6>数据预览</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead id="dataHeaders"></thead>
+                                            <tbody id="dataRows"></tbody>
+                                        </table>
+                                    </div>
+                                    <p class="text-muted small">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        已检测到 <span id="totalCount">0</span> 条员工记录，包含 <span id="roleCount">0</span> 种角色
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="card-footer text-end">
+                                <button id="nextStep1" class="btn btn-success" disabled>
+                                    下一步：配置会议室 <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤2: 会议室配置 -->
+            <div id="step2" class="step-content">
+                <div class="row">
+                    <div class="col-lg-10 mx-auto">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-gear me-2"></i>会议室配置</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- 配置表单 -->
+                                    <div class="col-md-6">
+                                        <h6>基本设置</h6>
+                                        <div class="mb-3">
+                                            <label for="roomCount" class="form-label">会议室数量</label>
+                                            <input type="number" class="form-control" id="roomCount" value="2" min="1" max="10">
+                                        </div>
+                                        
+                                        <div id="roomConfigs"></div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">预设模板</label>
+                                            <select class="form-select" id="templateSelect">
+                                                <option value="">选择预设模板</option>
+                                                <option value="small">小型培训 (50-100人)</option>
+                                                <option value="medium">中型培训 (100-300人)</option>
+                                                <option value="large">大型培训 (300-500人)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <h6>配置管理</h6>
+                                            <div class="btn-group w-100" role="group">
+                                                <button type="button" class="btn btn-outline-secondary" id="exportConfig">
+                                                    <i class="bi bi-download me-1"></i>导出配置
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" id="importConfig">
+                                                    <i class="bi bi-upload me-1"></i>导入配置
+                                                </button>
+                                            </div>
+                                            <input type="file" id="configFileInput" class="d-none" accept=".json">
+                                        </div>
+                                    </div>
+
+                                    <!-- 配置预览 -->
+                                    <div class="col-md-6">
+                                        <h6>配置预览</h6>
+                                        <div id="configPreview" class="config-preview">
+                                            <div class="text-center text-muted">
+                                                <i class="bi bi-diagram-2"></i>
+                                                <p>配置预览将在这里显示</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <div class="row text-center">
+                                                <div class="col-4">
+                                                    <div class="stat-box">
+                                                        <div class="stat-number" id="totalRooms">0</div>
+                                                        <div class="stat-label">会议室</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="stat-box">
+                                                        <div class="stat-number" id="totalTables">0</div>
+                                                        <div class="stat-label">桌子</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="stat-box">
+                                                        <div class="stat-number" id="totalSeats">0</div>
+                                                        <div class="stat-label">座位</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer d-flex justify-content-between">
+                                <button id="prevStep2" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> 上一步
+                                </button>
+                                <button id="nextStep2" class="btn btn-success">
+                                    下一步：开始分配 <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤3: 智能分配 -->
+            <div id="step3" class="step-content">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-cpu me-2"></i>智能座位分配</h4>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="allocationProgress" class="mb-4">
+                                    <div class="spinner-border text-primary mb-3" role="status">
+                                        <span class="visually-hidden">分配中...</span>
+                                    </div>
+                                    <h5 id="allocationStatus">正在进行智能分配...</h5>
+                                    <p class="text-muted" id="allocationDetails">分析角色分布，优化座位安排</p>
+                                </div>
+                                
+                                <div id="allocationResult" class="d-none">
+                                    <div class="alert alert-success">
+                                        <i class="bi bi-check-circle-fill me-2"></i>
+                                        座位分配完成！
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="stat-box">
+                                                <div class="stat-number" id="assignedPeople">0</div>
+                                                <div class="stat-label">已分配人员</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="stat-box">
+                                                <div class="stat-number" id="roleDistribution">0</div>
+                                                <div class="stat-label">角色分散度</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="stat-box">
+                                                <div class="stat-number" id="utilizationRate">0%</div>
+                                                <div class="stat-label">座位利用率</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer d-flex justify-content-between">
+                                <button id="prevStep3" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> 上一步
+                                </button>
+                                <button id="nextStep3" class="btn btn-success" disabled>
+                                    下一步：预览调整 <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤4: 预览调整 -->
+            <div id="step4" class="step-content">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0"><i class="bi bi-eye me-2"></i>座位预览与调整</h4>
+                                <div>
+                                    <button class="btn btn-outline-primary btn-sm me-2" id="regenerateBtn">
+                                        <i class="bi bi-arrow-repeat me-1"></i>重新分配
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm" id="resetChangesBtn">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>撤销修改
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-9">
+                                        <div id="seatingChart" class="seating-chart">
+                                            <!-- 座位图表将在这里动态生成 -->
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="info-panel">
+                                            <h6>角色分布统计</h6>
+                                            <div id="roleStats"></div>
+                                            
+                                            <h6 class="mt-4">操作说明</h6>
+                                            <ul class="list-unstyled small">
+                                                <li><i class="bi bi-mouse me-1"></i>拖拽人员到其他座位</li>
+                                                <li><i class="bi bi-eye me-1"></i>点击查看详细信息</li>
+                                                <li><i class="bi bi-arrow-repeat me-1"></i>重新分配重置所有</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer d-flex justify-content-between">
+                                <button id="prevStep4" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> 上一步
+                                </button>
+                                <button id="nextStep4" class="btn btn-success">
+                                    下一步：导出结果 <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤5: 导出结果 -->
+            <div id="step5" class="step-content">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0"><i class="bi bi-download me-2"></i>导出座位安排</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>导出选项</h6>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="exportByTable" checked>
+                                                <label class="form-check-label" for="exportByTable">
+                                                    按桌子分组导出
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="exportSummary" checked>
+                                                <label class="form-check-label" for="exportSummary">
+                                                    包含统计汇总
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="exportOriginal" checked>
+                                                <label class="form-check-label" for="exportOriginal">
+                                                    包含原始数据
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="exportFileName" class="form-label">文件名</label>
+                                            <input type="text" class="form-control" id="exportFileName" 
+                                                   value="座位安排表">
+                                        </div>
+
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-success" id="exportExcelBtn">
+                                                <i class="bi bi-file-earmark-excel me-2"></i>
+                                                导出 Excel 文件
+                                            </button>
+                                            <button class="btn btn-outline-primary" id="printPreviewBtn">
+                                                <i class="bi bi-printer me-2"></i>
+                                                打印预览
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <h6>导出预览</h6>
+                                        <div id="exportPreview" class="export-preview">
+                                            <div class="text-center text-muted">
+                                                <i class="bi bi-file-text"></i>
+                                                <p>导出预览</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer d-flex justify-content-between">
+                                <button id="prevStep5" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> 上一步
+                                </button>
+                                <button id="startOverBtn" class="btn btn-primary">
+                                    <i class="bi bi-arrow-repeat me-2"></i>重新开始
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- External Libraries -->
+    <script src="libs/xlsx.full.min.js"></script>
+    <script src="libs/sortable.min.js"></script>
+    <!-- Application Scripts -->
+    <script src="js/excel-parser.js"></script>
+    <script src="js/algorithm.js"></script>
+    <script src="js/visualization.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
